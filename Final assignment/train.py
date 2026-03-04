@@ -97,21 +97,27 @@ def main(args):
         ToDtype(torch.float32, scale=True),
         Normalize((0.5,), (0.5,)),
     ])
+    target_transform = Compose([
+        ToImage(),
+        Resize((256, 256)),
+    ])
 
     # Load the dataset and make a split for training and validation
     train_dataset = Cityscapes(
-        args.data_dir, 
-        split="train", 
-        mode="fine", 
-        target_type="semantic", 
-        transforms=transform
+        args.data_dir,
+        split="train",
+        mode="fine",
+        target_type="semantic",
+        transform=transform,
+        target_transform=target_transform,
     )
     valid_dataset = Cityscapes(
-        args.data_dir, 
-        split="val", 
-        mode="fine", 
-        target_type="semantic", 
-        transforms=transform
+        args.data_dir,
+        split="val",
+        mode="fine",
+        target_type="semantic",
+        transform=transform,
+        target_transform=target_transform,
     )
 
     train_dataloader = DataLoader(
