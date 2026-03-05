@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Large model/submission files (too large for GitHub)
+*.tar
+model.pt
+checkpoints/
