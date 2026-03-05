@@ -11,16 +11,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 
-# create virtual environment
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-
 # install dependencies (add any additional dependencies your project requires)
-RUN pip install --no-cache-dir \
-    torch torchvision --index-url https://download.pytorch.org/whl/cu126
-RUN pip install --no-cache-dir \
-    pillow
+RUN pip install --no-cache-dir --break-system-packages \
+    torchvision pillow
 
 WORKDIR /app
 COPY predict.py /app/predict.py
