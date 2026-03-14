@@ -49,7 +49,7 @@ class Model(nn.Module):
         """
         # Check if the input tensor has the expected number of channels
         if x.shape[1] != self.inc.double_conv[0].in_channels:
-            raise ValueError(f"Expected {self.inc[0].in_channels} input channels, but got {x.shape[1]}")
+            raise ValueError(f"Expected {self.inc.double_conv[0].in_channels} input channels, but got {x.shape[1]}")
         
         # Encoding path
         x1 = self.inc(x)
