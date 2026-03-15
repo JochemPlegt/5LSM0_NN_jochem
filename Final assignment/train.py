@@ -19,6 +19,7 @@ import wandb
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 from torchvision.datasets import Cityscapes
 from torchvision.utils import make_grid
@@ -28,9 +29,30 @@ from torchvision.transforms.v2 import (
     Resize,
     ToImage,
     ToDtype,
+    ColorJitter,
 )
+import torchvision.transforms.v2.functional as TF
 
 from model import Model
+
+
+class AugmentedDataset(torch.utils.data.Dataset):
+    """Wraps a dataset and applies joint augmentation to image and label."""
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.color_jitter = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05)
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        img, label = self.dataset[idx]
+        if torch.rand(1).item() > 0.5:
+            img = TF.horizontal_flip(img)
+            label = TF.horizontal_flip(label)
+        img = self.color_jitter(img)
+        return img, label
 
 
 # Mapping class IDs to train IDs
@@ -64,7 +86,8 @@ def get_args_parser():
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
     parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loaders")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--experiment-id", type=str, default="unet-training", help="Experiment ID for Weights & Biases")
+    parser.add_argument("--experiment-id", type=str, default="unet-augmented", help="Experiment ID for Weights & Biases")
+    parser.add_argument("--augment", action="store_true", help="Apply data augmentation during training")
 
     return parser
 
@@ -95,7 +118,7 @@ def main(args):
         ToImage(),
         Resize((256, 256)),
         ToDtype(torch.float32, scale=True),
-        Normalize((0.5,), (0.5,)),
+        Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ])
     target_transform = Compose([
         ToImage(),
@@ -120,9 +143,12 @@ def main(args):
         target_transform=target_transform,
     )
 
+    if args.augment:
+        train_dataset = AugmentedDataset(train_dataset)
+
     train_dataloader = DataLoader(
-        train_dataset, 
-        batch_size=args.batch_size, 
+        train_dataset,
+        batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers
     )
@@ -135,7 +161,6 @@ def main(args):
 
     # Define the model
     model = Model(
-        in_channels=3,  # RGB images
         n_classes=19,  # 19 classes in the Cityscapes dataset
     ).to(device)
 
@@ -144,6 +169,9 @@ def main(args):
 
     # Define the optimizer
     optimizer = AdamW(model.parameters(), lr=args.lr)
+
+    # Define the learning rate scheduler
+    scheduler = CosineAnnealingLR(optimizer, T_max=args.epochs)
 
     # Training loop
     best_valid_loss = float('inf')
@@ -168,7 +196,7 @@ def main(args):
 
             wandb.log({
                 "train_loss": loss.item(),
-                "learning_rate": optimizer.param_groups[0]['lr'],
+                "learning_rate": scheduler.get_last_lr()[0],
                 "epoch": epoch + 1,
             }, step=epoch * len(train_dataloader) + i)
             
@@ -211,6 +239,8 @@ def main(args):
             wandb.log({
                 "valid_loss": valid_loss
             }, step=(epoch + 1) * len(train_dataloader) - 1)
+
+            scheduler.step()
 
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
