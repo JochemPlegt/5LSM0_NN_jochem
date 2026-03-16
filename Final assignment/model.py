@@ -23,6 +23,18 @@ class Model(nn.Module):
         self.model.classifier = DeepLabHead(2048, n_classes)
         self.model.aux_classifier = None
 
+        # Freeze backbone to preserve pretrained ImageNet BatchNorm statistics
+        for param in self.model.backbone.parameters():
+            param.requires_grad = False
+
+    def train(self, mode=True):
+        super().train(mode)
+        # Keep backbone BatchNorm in eval mode to prevent statistics corruption
+        for module in self.model.backbone.modules():
+            if isinstance(module, torch.nn.BatchNorm2d):
+                module.eval()
+        return self
+
     def forward(self, x):
         return self.model(x)['out']
 
