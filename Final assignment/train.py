@@ -37,11 +37,10 @@ from model import Model
 
 
 class AugmentedDataset(torch.utils.data.Dataset):
-    """Wraps a dataset and applies joint augmentation to image and label."""
+    """Wraps a dataset and applies random horizontal flip to image and label jointly."""
 
     def __init__(self, dataset):
         self.dataset = dataset
-        self.color_jitter = ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05)
 
     def __len__(self):
         return len(self.dataset)
@@ -51,7 +50,6 @@ class AugmentedDataset(torch.utils.data.Dataset):
         if torch.rand(1).item() > 0.5:
             img = TF.horizontal_flip(img)
             label = TF.horizontal_flip(label)
-        img = self.color_jitter(img)
         return img, label
 
 
@@ -114,7 +112,14 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Define the transforms to apply to the data
-    transform = Compose([
+    train_transform = Compose([
+        ToImage(),
+        Resize((256, 256)),
+        ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05) if args.augment else nn.Identity(),
+        ToDtype(torch.float32, scale=True),
+        Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+    ])
+    val_transform = Compose([
         ToImage(),
         Resize((256, 256)),
         ToDtype(torch.float32, scale=True),
@@ -131,7 +136,7 @@ def main(args):
         split="train",
         mode="fine",
         target_type="semantic",
-        transform=transform,
+        transform=train_transform,
         target_transform=target_transform,
     )
     valid_dataset = Cityscapes(
@@ -139,7 +144,7 @@ def main(args):
         split="val",
         mode="fine",
         target_type="semantic",
-        transform=transform,
+        transform=val_transform,
         target_transform=target_transform,
     )
 
