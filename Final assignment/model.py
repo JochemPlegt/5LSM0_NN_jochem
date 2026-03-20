@@ -5,7 +5,7 @@ from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 from torchvision.models import ResNet50_Weights
 
 
-class Model(nn.Module):
+class _DeepLabV3Model(nn.Module):
     """
     DeepLabV3 with a pretrained ResNet50 backbone for semantic segmentation.
     The backbone is pretrained on ImageNet; the classifier head is trained from scratch.
@@ -18,7 +18,7 @@ class Model(nn.Module):
         super().__init__()
         self.model = deeplabv3_resnet50(
             weights=None,
-            weights_backbone=ResNet50_Weights.DEFAULT,
+            weights_backbone=None,
         )
         self.model.classifier = DeepLabHead(2048, n_classes)
         self.model.aux_classifier = None
@@ -124,3 +124,8 @@ class OutConv(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
+
+# Baseline submission: Model = UNet
+# Switch back to _DeepLabV3Model after baseline submission
+Model = UNet
