@@ -1,45 +1,88 @@
-# 5LSM0: Neural Networks for Computer Vision
+# 5LSM0 Neural Networks for Computer Vision – Final Assignment
 
-Welcome to the repository for **5LSM0: Neural Networks for Computer Vision**, a course offered by the Department of Electrical Engineering at Eindhoven University of Technology. This course is hosted by the [Architectures for Relaible Image Analysis Lab](https://github.com/TUE-ARIA).
+**Student:** Jochem Plegt
+**CodaLab username:** JochemPlegt
+**TU/e email:** j.j.g.plegt@student.tue.nl
 
-## Overview
+## Project Overview
 
-This repository contains all the assignments and supplementary materials for the course. The weekly assignments are designed as **Jupyter Notebooks**, providing practical, hands-on experience with the concepts discussed during lectures. These notebooks will help you gain familiarity with implementing neural networks using **PyTorch** in **Python**. For the final assignment, you will apply the knowledge gained throughout the course by coding in native Python and working with a compute cluster, providing valuable experience in real-world computational environments.
+This repository contains the code for the **Cityscapes Challenge** final assignment of course 5LSM0 at Eindhoven University of Technology. The goal is semantic segmentation on the Cityscapes dataset (19 classes).
 
-### Weekly Assignments
+Two benchmarks are addressed:
+- **Peak Performance** (server 5001): segmentation quality on clean test images
+- **Robustness** (server 5002): segmentation quality under common image corruptions
 
-The weekly assignments are structured to guide you through foundational and advanced topics in neural networks for computer vision. These assignments are:
-- **Optional**: They are not mandatory but serve as valuable practice to build your coding skills.
-- **Hands-On**: Focused on applying theoretical knowledge from the lectures into real-world implementations.
+The proposed approach replaces the baseline U-Net with a **DeepLabV3-ResNet50** model using a pretrained backbone, data augmentation, and cosine annealing scheduling.
 
-### Final Assignment
+## Results
 
-The **final assignment** is the cornerstone of this course and accounts for **50% of your final grade**. In this project, you will:
-1. Work on a real-world problem using the **CityScapes dataset**.
-2. Train neural networks and validate their performance against established baselines.
-3. Document your results and insights in a detailed report.
+| Model | Benchmark | Mean Dice | Mean IoU |
+|-------|-----------|-----------|---------|
+| Baseline U-Net | Peak Performance | 0.4598 | 0.3758 |
+| DeepLabV3-ResNet50 | Peak Performance | 0.4681 | 0.3887 |
+| Baseline U-Net | Robustness | 0.2079 | 0.1539 |
+| DeepLabV3-ResNet50 | Robustness | 0.4108 | 0.3358 |
 
-This final assignment requires a deeper dive into the subject, pushing you to apply the knowledge and skills gained throughout the course.
+## Repository Structure
 
-The final assignment will start in week 3 (February 24th), once all core lectures have been completed, ensuring you have the necessary foundation to work on the project.
+```
+Final assignment/
+├── model.py          # Model definition (DeepLabV3-ResNet50 and baseline U-Net)
+├── train.py          # Training script with WandB logging
+├── predict.py        # Inference script for Docker submission
+├── Dockerfile        # Docker container for challenge submission
+├── main.sh           # SLURM job script for Snellius HPC cluster
+report/
+├── main.tex          # LaTeX source of the research paper
+├── references.bib    # Bibliography
+└── figures/          # Figures used in the paper
+```
 
-## Authors and Contact
+## Requirements
 
-This course material is developed and maintained by the following contributors:  
+```bash
+pip install torch torchvision wandb
+```
 
-- **Cris H.B. Claessens**  
-  Email: [c.h.b.claessens@tue.nl](mailto:c.h.b.claessens@tue.nl)  
+## Training
 
-- **Tim J.M. Jaspers**  
-  Email: [t.j.m.jaspers@tue.nl](mailto:t.j.m.jaspers@tue.nl)
+### On Snellius HPC cluster
+```bash
+sbatch "Final assignment/main.sh"
+```
 
-- **Francisco De Espírito Santo e Caetano**  
-  Email: [f.t.de.espirito.santo.e.caetano@tue.nl](mailto:f.t.de.espirito.santo.e.caetano@tue.nl)
+### Local training
+```bash
+python "Final assignment/train.py" \
+  --experiment-id "deeplabv3-final" \
+  --lr 0.001 \
+  --epochs 100 \
+  --augment
+```
 
-- **Lemar Abdi**  
-  Email: [l.abdi@tue.nl](mailto:l.abdi@tue.nl)
+Training metrics are logged to [Weights & Biases](https://wandb.ai).
 
-- **dr. Christiaan G.A. Viviers**  
-  Email: [c.g.a.vivers@tue.nl](mailto:c.g.a.vivers@tue.nl)
+## Docker Submission
 
-If you have questions or need assistance, you can always reach out to us via email. However, we strongly encourage you to post your questions in the **Discussions** section of this GitHub repository. This way, other students can benefit from the conversations and contribute by helping each other out.
+1. Copy the best checkpoint to `model.pt`
+2. Build the Docker image:
+```bash
+cd "Final assignment"
+docker build -t nncv-submission:latest .
+```
+3. Export:
+```bash
+docker save -o nncv_submission.tar nncv-submission:latest
+```
+4. Upload to the challenge server at `http://131.155.126.249:5001` or `http://131.155.126.249:5002`
+
+## Model Details
+
+The proposed model is **DeepLabV3** with a **ResNet-50 backbone** pretrained on ImageNet:
+
+- Backbone is **frozen** during training to preserve pretrained BatchNorm statistics
+- Classifier head trained from scratch (19 output classes)
+- Data augmentation: random horizontal flip + color jitter
+- Optimizer: AdamW, lr=0.001, cosine annealing scheduling
+- Loss: Cross-entropy with ignore index 255
+- Input: 256×256, ImageNet normalization (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

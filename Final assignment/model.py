@@ -126,6 +126,4 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 
-# Baseline submission: Model = UNet
-# Switch back to _DeepLabV3Model after baseline submission
-Model = UNet
+Model = _DeepLabV3Model
