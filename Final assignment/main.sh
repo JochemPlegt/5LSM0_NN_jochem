@@ -6,9 +6,7 @@
 #SBATCH --partition=gpu_a100
 #SBATCH --time=04:00:00
 
-wandb login
-
-python3 train.py \
+srun apptainer exec --nv --env-file .env container.sif python3 train.py \
     --data-dir ./data/cityscapes \
     --batch-size 64 \
     --epochs 100 \
