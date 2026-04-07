@@ -126,4 +126,4 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 
-Model = _DeepLabV3Model
+Model = UNet
