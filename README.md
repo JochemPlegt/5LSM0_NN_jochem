@@ -40,10 +40,7 @@ Final assignment/
 ├── jobscript_slurm.sh    # Alternative SLURM script using Apptainer container
 ├── Dockerfile            # Docker container for challenge submission
 ├── download_docker_and_data.sh  # Script to download data and container on Snellius
-report/
-├── main.tex              # LaTeX source of the research paper
-├── references.bib        # Bibliography
-└── figures/              # Figures used in the paper
+
 ```
 
 ## Training
