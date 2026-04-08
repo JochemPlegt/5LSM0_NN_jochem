@@ -21,7 +21,9 @@ The proposed approach replaces the baseline U-Net with a **DeepLabV3-ResNet50** 
 | Baseline U-Net | Peak Performance | 0.4598 | 0.3758 |
 | DeepLabV3-ResNet50 | Peak Performance | 0.4681 | 0.3887 |
 | Baseline U-Net | Robustness | 0.2079 | 0.1539 |
-| DeepLabV3-ResNet50 | Robustness | 0.4108 | 0.3358 |
+| DeepLabV3 (no augmentation) | Robustness | 0.2261 | 0.1747 |
+| U-Net + augmentation | Robustness | 0.3601 | 0.2883 |
+| DeepLabV3 + augmentation | Robustness | 0.4108 | 0.3358 |
 
 ## Requirements
 

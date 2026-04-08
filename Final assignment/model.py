@@ -6,15 +6,7 @@ from torchvision.models import ResNet50_Weights
 
 
 class _DeepLabV3Model(nn.Module):
-    """
-    DeepLabV3 with a pretrained ResNet50 backbone for semantic segmentation.
-    The backbone is pretrained on ImageNet; the classifier head is trained from scratch.
-    """
     def __init__(self, n_classes=19):
-        """
-        Args:
-            n_classes (int): Number of output classes. Default is 19 for the Cityscapes dataset.
-        """
         super().__init__()
         self.model = deeplabv3_resnet50(
             weights=None,
@@ -23,13 +15,11 @@ class _DeepLabV3Model(nn.Module):
         self.model.classifier = DeepLabHead(2048, n_classes)
         self.model.aux_classifier = None
 
-        # Freeze backbone to preserve pretrained ImageNet BatchNorm statistics
         for param in self.model.backbone.parameters():
             param.requires_grad = False
 
     def train(self, mode=True):
         super().train(mode)
-        # Keep backbone BatchNorm in eval mode to prevent statistics corruption
         for module in self.model.backbone.modules():
             if isinstance(module, torch.nn.BatchNorm2d):
                 module.eval()
