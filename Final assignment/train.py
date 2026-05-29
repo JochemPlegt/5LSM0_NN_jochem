@@ -85,7 +85,9 @@ def get_args_parser():
     parser.add_argument("--num-workers", type=int, default=10, help="Number of workers for data loaders")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--experiment-id", type=str, default="unet-augmented", help="Experiment ID for Weights & Biases")
-    parser.add_argument("--augment", action="store_true", help="Apply data augmentation during training")
+    parser.add_argument("--augment", action="store_true", help="Apply both flip and color jitter augmentation (shorthand for --augment-flip --augment-jitter)")
+    parser.add_argument("--augment-flip", action="store_true", help="Apply random horizontal flip augmentation only")
+    parser.add_argument("--augment-jitter", action="store_true", help="Apply color jitter augmentation only")
 
     return parser
 
@@ -102,8 +104,13 @@ def main(args):
     output_dir = os.path.join("checkpoints", args.experiment_id)
     os.makedirs(output_dir, exist_ok=True)
 
+    # --augment is shorthand for enabling both flip and jitter
+    if args.augment:
+        args.augment_flip = True
+        args.augment_jitter = True
+
     # Set seed for reproducability
-    # If you add other sources of randomness (NumPy, Random), 
+    # If you add other sources of randomness (NumPy, Random),
     # make sure to set their seeds as well
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = True
@@ -115,7 +122,7 @@ def main(args):
     train_transform = Compose([
         ToImage(),
         Resize((256, 256)),
-        ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05) if args.augment else nn.Identity(),
+        ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05) if args.augment_jitter else nn.Identity(),
         ToDtype(torch.float32, scale=True),
         Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ])
@@ -148,7 +155,7 @@ def main(args):
         target_transform=target_transform,
     )
 
-    if args.augment:
+    if args.augment_flip:
         train_dataset = AugmentedDataset(train_dataset)
 
     train_dataloader = DataLoader(

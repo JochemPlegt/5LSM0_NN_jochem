@@ -6,4 +6,8 @@
 #SBATCH --partition=gpu_a100
 #SBATCH --time=04:00:00
 
-srun apptainer exec --nv --env-file .env container.sif /bin/bash main.sh
+srun apptainer exec --nv \
+    --env-file .env \
+    --env EXPERIMENT="${EXPERIMENT:-unet-no-augment}" \
+    --env AUGMENT_FLAGS="${AUGMENT_FLAGS:-}" \
+    container.sif /bin/bash main.sh
