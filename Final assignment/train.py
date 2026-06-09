@@ -33,7 +33,7 @@ from torchvision.transforms.v2 import (
 )
 import torchvision.transforms.v2.functional as TF
 
-from model import Model
+from model import Model, DeepLabModel
 
 
 class AugmentedDataset(torch.utils.data.Dataset):
@@ -88,6 +88,8 @@ def get_args_parser():
     parser.add_argument("--augment", action="store_true", help="Apply both flip and color jitter augmentation (shorthand for --augment-flip --augment-jitter)")
     parser.add_argument("--augment-flip", action="store_true", help="Apply random horizontal flip augmentation only")
     parser.add_argument("--augment-jitter", action="store_true", help="Apply color jitter augmentation only")
+    parser.add_argument("--model", type=str, default="unet", choices=["unet", "deeplab"], help="Model architecture: unet or deeplab")
+    parser.add_argument("--finetune-backbone", action="store_true", help="Fine-tune the DeepLabV3 backbone (default: frozen)")
 
     return parser
 
@@ -172,9 +174,15 @@ def main(args):
     )
 
     # Define the model
-    model = Model(
-        n_classes=19,  # 19 classes in the Cityscapes dataset
-    ).to(device)
+    if args.model == "deeplab":
+        model = DeepLabModel(
+            n_classes=19,
+            freeze_backbone=not args.finetune_backbone,
+        ).to(device)
+    else:
+        model = Model(
+            n_classes=19,
+        ).to(device)
 
     # Define the loss function
     criterion = nn.CrossEntropyLoss(ignore_index=255)  # Ignore the void class

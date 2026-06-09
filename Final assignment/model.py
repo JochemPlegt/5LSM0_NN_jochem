@@ -6,23 +6,26 @@ from torchvision.models import ResNet50_Weights
 
 
 class _DeepLabV3Model(nn.Module):
-    def __init__(self, n_classes=19):
+    def __init__(self, n_classes=19, freeze_backbone=True):
         super().__init__()
         self.model = deeplabv3_resnet50(
             weights=None,
-            weights_backbone=None,
+            weights_backbone=ResNet50_Weights.IMAGENET1K_V1,
         )
         self.model.classifier = DeepLabHead(2048, n_classes)
         self.model.aux_classifier = None
+        self.freeze_backbone = freeze_backbone
 
-        for param in self.model.backbone.parameters():
-            param.requires_grad = False
+        if freeze_backbone:
+            for param in self.model.backbone.parameters():
+                param.requires_grad = False
 
     def train(self, mode=True):
         super().train(mode)
-        for module in self.model.backbone.modules():
-            if isinstance(module, torch.nn.BatchNorm2d):
-                module.eval()
+        if self.freeze_backbone:
+            for module in self.model.backbone.modules():
+                if isinstance(module, torch.nn.BatchNorm2d):
+                    module.eval()
         return self
 
     def forward(self, x):
@@ -117,3 +120,4 @@ class OutConv(nn.Module):
 
 
 Model = UNet
+DeepLabModel = _DeepLabV3Model
