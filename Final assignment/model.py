@@ -6,11 +6,11 @@ from torchvision.models import ResNet50_Weights
 
 
 class _DeepLabV3Model(nn.Module):
-    def __init__(self, n_classes=19, freeze_backbone=True):
+    def __init__(self, n_classes=19, freeze_backbone=True, pretrained_backbone=True):
         super().__init__()
         self.model = deeplabv3_resnet50(
             weights=None,
-            weights_backbone=ResNet50_Weights.IMAGENET1K_V1,
+            weights_backbone=ResNet50_Weights.IMAGENET1K_V1 if pretrained_backbone else None,
         )
         self.model.classifier = DeepLabHead(2048, n_classes)
         self.model.aux_classifier = None

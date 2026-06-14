@@ -22,7 +22,7 @@ from torchvision.transforms.v2 import (
     InterpolationMode,
 )
 
-from model import Model
+from model import DeepLabModel as Model
 
 # Fixed paths inside participant container
 # Do NOT chnage the paths, these are fixed locations where the server will 
@@ -67,7 +67,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Load model
-    model = Model()
+    model = Model(n_classes=19, freeze_backbone=False, pretrained_backbone=False)
     state_dict = torch.load(
         MODEL_PATH, 
         map_location=device,
