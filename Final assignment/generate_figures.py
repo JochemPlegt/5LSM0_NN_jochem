@@ -133,20 +133,31 @@ def find_good_and_bad_indices(model, dataset, n_check=80):
     return best_idx, fail_idx
 
 
-def save_prediction_figure(model, dataset, idx, out_path):
+def save_prediction_figure(model, dataset, idx, out_path, show_gt=False):
     img_t, label = dataset[int(idx)]
     gt = convert_to_train_id(label.clone()).long().squeeze(0).numpy()
 
     with torch.no_grad():
         pred = model(img_t.unsqueeze(0).to(DEVICE)).argmax(dim=1)[0].cpu().numpy()
 
-    fig, axes = plt.subplots(1, 2, figsize=(7, 2.8), dpi=120)
+    n_panels = 3 if show_gt else 2
+    fig, axes = plt.subplots(1, n_panels, figsize=(n_panels * 3.5, 2.8), dpi=120)
     axes[0].imshow(denormalize(img_t))
     axes[0].set_title('Input', fontsize=10)
     axes[0].axis('off')
-    axes[1].imshow(pred_to_color(pred))
-    axes[1].set_title('Prediction', fontsize=10)
-    axes[1].axis('off')
+    if show_gt:
+        gt_vis = gt.copy()
+        gt_vis[gt_vis == 255] = 0  # map ignore to road color (dark purple) for visibility
+        axes[1].imshow(pred_to_color(gt_vis))
+        axes[1].set_title('Ground truth', fontsize=10)
+        axes[1].axis('off')
+        axes[2].imshow(pred_to_color(pred))
+        axes[2].set_title('Prediction', fontsize=10)
+        axes[2].axis('off')
+    else:
+        axes[1].imshow(pred_to_color(pred))
+        axes[1].set_title('Prediction', fontsize=10)
+        axes[1].axis('off')
     plt.tight_layout(pad=0.3)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out_path, bbox_inches='tight')
@@ -197,8 +208,8 @@ if __name__ == '__main__':
     good_idx, fail_idx = find_good_and_bad_indices(deeplab, dataset)
 
     print("\nSaving prediction figures...")
-    save_prediction_figure(deeplab, dataset, good_idx, f"{OUT_DIR}/deeplabv3_pred1.png")
-    save_prediction_figure(deeplab, dataset, fail_idx, f"{OUT_DIR}/deeplabv3_pred2.png")
+    save_prediction_figure(deeplab, dataset, good_idx, f"{OUT_DIR}/deeplabv3_pred1.png", show_gt=False)
+    save_prediction_figure(deeplab, dataset, fail_idx, f"{OUT_DIR}/deeplabv3_pred2.png", show_gt=True)
 
     print("\nComputing per-class Dice (U-Net)...")
     dice_unet = compute_per_class_dice(unet, dataset)
